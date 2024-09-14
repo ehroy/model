@@ -2,10 +2,11 @@ import json
 import os
 import pickle
 from zipfile import ZipFile
+import numpy as np
 import pandas as pd
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.linear_model import BayesianRidge, LinearRegression
-from sklearn.svm import SVR, SVC
+from sklearn.svm import SVR, SVC, NuSVC
 from updater import download_binance_daily_data, download_binance_current_day_data, download_coingecko_data, download_coingecko_current_day_data
 from config import data_base_path, model_file_path, TOKEN, MODEL, CG_API_KEY
 
@@ -110,41 +111,81 @@ def load_frame(frame, timeframe):
     return df.resample(f'{timeframe}', label='right', closed='right', origin='end').mean()
 
 def train_model(timeframe):
-    # Load the price data
-    # price_data = pd.read_csv(training_price_data_path)
-    # df = load_frame(price_data, timeframe)
-
-    # print(df.tail())
-
-    # y_train = df['close'].shift(-1).dropna().values
-    # X_train = df[:-1]
-
-    # print(f"Training data shape: {X_train.shape}, {y_train.shape}")
-    price_data = pd.read_csv(training_price_data_path)
-    df = load_frame(price_data, timeframe)
-
-    print(df.tail())
-
-    y_train = df['close'].shift(-1).dropna().values
-
-    # Menghapus baris terakhir di X_train agar jumlah baris sesuai dengan y_train
-    X_train = df.iloc[:-1].values
-
-    # Memastikan tidak ada nilai NaN di y_train
-    y_train = pd.cut(y_train, bins=3, labels=[0, 1, 2])
-
-    # Define the model
     if MODEL == "LinearRegression":
+            # Load the price data
+        price_data = pd.read_csv(training_price_data_path)
+        df = load_frame(price_data, timeframe)
+
+        print(df.tail())
+
+        y_train = df['close'].shift(-1).dropna().values
+        X_train = df[:-1]
+
+        print(f"Training data shape: {X_train.shape}, {y_train.shape}")
         model = LinearRegression()
     elif MODEL == "SVR":
+            # Load the price data
+        price_data = pd.read_csv(training_price_data_path)
+        df = load_frame(price_data, timeframe)
+
+        print(df.tail())
+
+        y_train = df['close'].shift(-1).dropna().values
+        X_train = df[:-1]
+
+        print(f"Training data shape: {X_train.shape}, {y_train.shape}")
         model = SVR()
     elif MODEL == "SVC":
+        price_data = pd.read_csv(training_price_data_path)
+        df = load_frame(price_data, timeframe)
+        y_train = df['close'].shift(-1).dropna().values
+        X_train = df.iloc[:-1].values
+        y_train = pd.cut(y_train, bins=3, labels=[0, 1, 2])
         model = SVC()
     elif MODEL == "KernelRidge":
+            # Load the price data
+        price_data = pd.read_csv(training_price_data_path)
+        df = load_frame(price_data, timeframe)
+
+        print(df.tail())
+
+        y_train = df['close'].shift(-1).dropna().values
+        X_train = df[:-1]
+
+        print(f"Training data shape: {X_train.shape}, {y_train.shape}")
         model = KernelRidge()
     elif MODEL == "BayesianRidge":
+            # Load the price data
+        price_data = pd.read_csv(training_price_data_path)
+        df = load_frame(price_data, timeframe)
+
+        print(df.tail())
+
+        y_train = df['close'].shift(-1).dropna().values
+        X_train = df[:-1]
+
+        print(f"Training data shape: {X_train.shape}, {y_train.shape}")
         model = BayesianRidge()
-    # Add more models here
+    elif MODEL == "NuSVC":
+        price_data = pd.read_csv(training_price_data_path)
+
+        # Mengambil frame data berdasarkan time frame
+        df = load_frame(price_data, timeframe)
+
+        # Menggeser 'close' untuk prediksi target dan menghapus NaN
+        y_train = df['close'].shift(-1).dropna().values
+
+        # Menghapus baris terakhir di X_train agar jumlah baris sesuai dengan y_train
+        X_train = df.iloc[:-1].values
+
+        # Memastikan tidak ada nilai NaN di X_train atau y_train
+        # Jika masih ada NaN, hilangkan baris yang mengandung NaN
+        X_train = X_train[~np.isnan(y_train)]
+        y_train = y_train[~np.isnan(y_train)]
+
+        # Konversi y_train menjadi kategori diskrit (misalkan 3 kategori)
+        y_train = pd.cut(y_train, bins=3, labels=[0, 1, 2])
+        model = NuSVC()
     else:
         raise ValueError("Unsupported model")
     
